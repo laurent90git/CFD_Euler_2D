@@ -385,9 +385,15 @@ def modelfun(t,x,options):
     fluxes_down[:,:,:] = options['mesh']['faces']['dx']* fluxes_down
     fluxes_right[:,:,:] =options['mesh']['faces']['dy']* fluxes_right
     
+    
     time_deriv = (1/options['mesh']['cells']['surfaces'])*(fluxes_down[:,:-1,:] - fluxes_down[:,1:,:]+fluxes_right[:,:,:-1] - fluxes_right[:,:,1:])
 
-
+    # add gravity
+    if "g" in options.keys():
+        time_deriv[1,:,:]=time_deriv[1,:,:]+rho*options["g"][0,:,:]
+        time_deriv[2,:,:]=time_deriv[2,:,:]+rho*options["g"][1,:,:]
+        time_deriv[3,:,:]=time_deriv[3,:,:]+(options["g"][0,:,:]*rhoU + options["g"][1,:,:]* rhoV)
+    
     dxdt = getXFromVars(rho=time_deriv[0,:,:],  rhoU=time_deriv[1,:,:],
                         rhoV=time_deriv[2,:,:], rhoE=time_deriv[3,:,:])
     if np.isnan(dxdt).any():

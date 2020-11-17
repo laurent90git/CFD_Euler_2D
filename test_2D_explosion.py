@@ -15,7 +15,7 @@ import scipy.optimize
 options={'mesh':{}, 'BCs':{'up_down':None, 'left_right':None}}
 
 xmin,xmax = 0,5
-ymin,ymax = 0,5
+ymin,ymax = -5,0
 
 nx,ny = 100,100
 
@@ -75,10 +75,11 @@ dxdt0 = modelfun(t=0.,x=X0, options=options)
 dtrho0, dtrhoU0, dtrhoV0, dtrhoE0 = getVarsFromX(dxdt0, options)
 
 #%% NUMERICAL INTEGRATION
-tend= 0.006
+tend=  0.006
 out  = integrate.solve_ivp(fun=lambda t,x: modelfun(t,x,options), t_span=(0.,tend), y0=X0, first_step=1e-9,
                        max_step=np.inf, method='RK45', atol=1e-6, rtol=1e-6)
                        # max_step=np.inf, method='BDF', atol=1e-9, rtol=1e-9)
+
 #%% GATHER RESULTS
 rho, rhoU, rhoV, rhoE = getVarsFromX_vectorized(out.y, options)
 temp = computeOtherVariables(rho, rhoU, rhoV, rhoE)
@@ -183,16 +184,17 @@ schlieren = (schlieren_x**2 + schlieren_y**2)**0.5
 Plog10 = np.log10(P)
 #%%
 varplot = (
-           # (np.log10(np.abs(schlieren)), 'schlieren', 'Synthetic Schlieren', None, (-10, None)),
+            (np.log10(np.abs(schlieren)), 'log10_schlieren', 'Synthetic Schlieren', None, (-10, np.max(np.log10(np.abs(schlieren))))),
+            # ((np.abs(schlieren)), 'schlieren', 'Synthetic Schlieren', None,  (np.min(np.abs(schlieren)), np.max(np.abs(schlieren)))),
             # (P, 'P', 'Pressure field', 'P (Pa)', (np.min(P), np.max(P))),
-            (Plog10, 'P', 'Pressure field', 'P (Pa)', (np.min(Plog10), np.max(Plog10))),
+            # (Plog10, 'P', 'Pressure field', 'P (Pa)', (np.min(Plog10), np.max(Plog10))),
            )
 for var, name, title, clabel, (zmin,zmax) in varplot:
     if zmin is not None:
       levels = np.linspace(zmin, zmax, 100)
     else:
       levels = 100 # auto-levels
-    for wished_t in np.linspace(time[0], time[-1], 5): # plot the solution at regular time intnervals
+    for wished_t in np.linspace(time[0], time[-1], 30): # plot the solution at regular time intnervals
       plt.figure(dpi=300)
       itime = np.argmin( np.abs(wished_t-time) ) # closest simulation time available
       plt.contourf(xx[::space_gap,::space_gap], yy[::space_gap,::space_gap], var[::space_gap,::space_gap, itime],
@@ -202,6 +204,10 @@ for var, name, title, clabel, (zmin,zmax) in varplot:
       # cb = plt.colorbar()
       # cb.set_label('P (Pa)')
       # plt.grid()
+      plt.axis('equal')
       plt.title('t = {}'.format(wished_t))
       plt.savefig('{}_{}.png'.format(name,itime), dpi=500)
+      
+#export list_img=$(ls | sort -V)
+#convert -delay 10 $list_img animation2.gif
       
